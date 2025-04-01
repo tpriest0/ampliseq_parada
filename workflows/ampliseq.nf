@@ -190,23 +190,7 @@ workflow AMPLISEQ {
     //
     // Add primer info to sequencing files
     //
-    if ( params.multiregion ) {
-        // is multiple region analysis
-        ch_input_reads
-            .combine( Channel.fromSamplesheet("multiregion") )
-            .map{ info, reads, multi ->
-                def meta = info + multi
-                return [ meta, reads ] }
-            .map{ info, reads ->
-                def meta = info +
-                    [id: info.sample+"_"+info.fw_primer+"_"+info.rv_primer] +
-                    [fw_primer_revcomp: makeComplement(info.fw_primer.reverse())] +
-                    [rv_primer_revcomp: makeComplement(info.rv_primer.reverse())]
-                return [ meta, reads ] }
-            .set { ch_input_reads }
-    } else {
-        // is single region
-        ch_input_reads
+    ch_input_reads
             .map{ info, reads ->
                 def meta = info +
                     [region: null, region_length: null] +
@@ -216,7 +200,6 @@ workflow AMPLISEQ {
                     [rv_primer_revcomp: params.RV_primer ? makeComplement(params.RV_primer.reverse()) : null]
                 return [ meta, reads ] }
             .set { ch_input_reads }
-    }
 
     //Filter empty files
     ch_input_reads.dump(tag:'ch_input_reads')
@@ -336,7 +319,7 @@ workflow AMPLISEQ {
 
     // MODULE : ASV post-clustering with VSEARCH
     //
-    if (params.vsearch_cluster && !params.multiregion) {
+    if (params.vsearch_cluster) {
         ch_fasta_for_clustering = ch_dada2_fasta
             .map {
                 fasta ->
@@ -365,7 +348,7 @@ workflow AMPLISEQ {
     //
     // Modules : Filter rRNA
     //
-    if ( !params.skip_barrnap && params.filter_ssu && !params.multiregion ) {
+    if ( !params.skip_barrnap && params.filter_ssu) {
         BARRNAP ( ch_unfiltered_fasta )
         ch_versions = ch_versions.mix(BARRNAP.out.versions)
         BARRNAPSUMMARY ( BARRNAP.out.gff.collect() )
@@ -383,7 +366,7 @@ workflow AMPLISEQ {
         ch_stats = MERGE_STATS_FILTERSSU.out.tsv
         ch_dada2_fasta = FILTER_SSU.out.fasta
         ch_dada2_asv = FILTER_SSU.out.asv
-    } else if ( !params.skip_barrnap && !params.filter_ssu && !params.multiregion ) {
+    } else if ( !params.skip_barrnap && !params.filter_ssu) {
         BARRNAP ( ch_unfiltered_fasta )
         BARRNAPSUMMARY ( BARRNAP.out.gff.collect() )
         BARRNAPSUMMARY.out.warning.subscribe { if ( it.baseName.toString().startsWith("WARNING") ) log.warn "Barrnap could not identify any rRNA in the ASV sequences. We recommended to use the --skip_barrnap option for these sequences." }
@@ -399,7 +382,7 @@ workflow AMPLISEQ {
     //
     // Modules : amplicon length filtering
     //
-    if ( (params.min_len_asv || params.max_len_asv) && !params.multiregion ) {
+    if ( (params.min_len_asv || params.max_len_asv)) {
         FILTER_LEN_ASV ( ch_dada2_fasta, ch_dada2_asv.ifEmpty( [] ) )
         ch_versions = ch_versions.mix(FILTER_LEN_ASV.out.versions)
         MERGE_STATS_FILTERLENASV ( ch_stats, FILTER_LEN_ASV.out.stats )
@@ -413,7 +396,7 @@ workflow AMPLISEQ {
     //
     // Modules : Filtering based on codons in an open reading frame
     //
-    if ( params.filter_codons && !params.multiregion ) {
+    if ( params.filter_codons ) {
         FILTER_CODONS ( ch_dada2_fasta, ch_dada2_asv.ifEmpty( [] ) )
         ch_versions = ch_versions.mix(FILTER_CODONS.out.versions)
         MERGE_STATS_CODONS( ch_stats, FILTER_CODONS.out.stats )
@@ -548,7 +531,7 @@ workflow AMPLISEQ {
     //
     // MODULE: Summary Report
     //
-    if (!params.skip_report && !params.multiregion) {
+    if (!params.skip_report) {
         SUMMARY_REPORT (
             ch_report_template,
             ch_report_css,
@@ -609,10 +592,6 @@ workflow AMPLISEQ {
     if ( params.input_fasta ) {
         file("${params.outdir}/input").mkdir()
         file("${params.input_fasta}").copyTo("${params.outdir}/input")
-    }
-    if ( params.multiregion ) {
-        file("${params.outdir}/input").mkdir()
-        file("${params.multiregion}").copyTo("${params.outdir}/input")
     }
     if ( params.metadata ) {
         file("${params.outdir}/input").mkdir()
