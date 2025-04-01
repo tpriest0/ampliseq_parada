@@ -25,106 +25,81 @@ process DADA2_DENOISING {
     script:
     def args = task.ext.args ?: ''
     def args2 = task.ext.args2 ?: ''
-    if (!meta.single_end) {
-        """
-        #!/usr/bin/env Rscript
-        suppressPackageStartupMessages(library(dada2))
+    """
+    #!/usr/bin/env Rscript
+    suppressPackageStartupMessages(library(dada2))
 
-        errF <- readRDS("${errormodel[0]}")
-        errR <- readRDS("${errormodel[1]}")
+    errF <- readRDS("${errormodel[0]}")
+    errR <- readRDS("${errormodel[1]}")
 
-        filtFs <- sort(list.files("./filtered", pattern = "_1.filt.fastq.gz", full.names = TRUE))
-        filtRs <- sort(list.files("./filtered", pattern = "_2.filt.fastq.gz", full.names = TRUE))
+    filtFs <- sort(list.files("./filtered", pattern = "_1.filt.fastq.gz", full.names = TRUE))
+    filtRs <- sort(list.files("./filtered", pattern = "_2.filt.fastq.gz", full.names = TRUE))
 
-        #denoising
-        sink(file = "${meta.run}.dada.log")
-        dadaFs <- dada(filtFs, err = errF, $args, multithread = $task.cpus)
-        saveRDS(dadaFs, "${meta.run}_1.dada.rds")
-        dadaRs <- dada(filtRs, err = errR, $args, multithread = $task.cpus)
-        saveRDS(dadaRs, "${meta.run}_2.dada.rds")
-        sink(file = NULL)
+    #denoising
+    sink(file = "${meta.run}.dada.log")
+    dadaFs <- dada(filtFs, err = errF, $args, multithread = $task.cpus)
+    saveRDS(dadaFs, "${meta.run}_1.dada.rds")
+    dadaRs <- dada(filtRs, err = errR, $args, multithread = $task.cpus)
+    saveRDS(dadaRs, "${meta.run}_2.dada.rds")
+    sink(file = NULL)
 
-        # merge
+    # merge
 
-        if ("${params.concatenate_reads}" == "consensus") {
+    if ("${params.concatenate_reads}" == "consensus") {
 
-            mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, $args2, justConcatenate = FALSE, verbose=TRUE)
-            concats <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, $args2, justConcatenate = TRUE, verbose=TRUE)
+        mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, $args2, justConcatenate = FALSE, verbose=TRUE)
+        concats <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, $args2, justConcatenate = TRUE, verbose=TRUE)
 
-            # in case there is only one sample in the entire run
-            if (is.data.frame(mergers)) {
-                mergers <- list(sample = mergers)
-                concats <- list(sample = concats)
-            }
-
-            # define the overlap threshold to decide if concatenation or not
-
-            min_overlap_obs <- lapply(mergers, function(X) {
-
-                mergers_accepted <- X[["accept"]]
-            
-                if (sum(mergers_accepted) > 0) {
-                    min_overlap_obs <- X[["nmatch"]][mergers_accepted] + X[["nmismatch"]][mergers_accepted]
-                    rep(min_overlap_obs, X[["abundance"]][mergers_accepted])
-                } else {
-                    NA
-                }
-            })
-  
-            min_overlap_obs <- Reduce(c, min_overlap_obs)
-            min_overlap_obs <- min_overlap_obs[!is.na(min_overlap_obs)]
-            min_overlap_obs <- quantile(min_overlap_obs, 0.001)
-
-            for (x in names(mergers)) {
-                to_concat <- !mergers[[x]][["accept"]] & (mergers[[x]][["nmismatch"]] + mergers[[x]][["nmatch"]]) < min_overlap_obs
-                
-                if (sum(to_concat) > 0) {
-                    mergers[[x]][to_concat, ] <- concats[[x]][to_concat, ]
-                    # filter out unaccepted non concatenated sequences
-                    mergers[[x]] <- mergers[[x]][mergers[[x]][["accept"]], ]
-                }
-
-            }
-            
-        } else {
-            mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, $args2, verbose=TRUE)
+        # in case there is only one sample in the entire run
+        if (is.data.frame(mergers)) {
+            mergers <- list(sample = mergers)
+            concats <- list(sample = concats)
         }
 
-        saveRDS(mergers, "${meta.run}.mergers.rds")
+        # define the overlap threshold to decide if concatenation or not
 
-        # make table
+        min_overlap_obs <- lapply(mergers, function(X) {
 
-        seqtab <- makeSequenceTable(mergers)
-        saveRDS(seqtab, "${meta.run}.seqtab.rds")
+            mergers_accepted <- X[["accept"]]
+            
+            if (sum(mergers_accepted) > 0) {
+                min_overlap_obs <- X[["nmatch"]][mergers_accepted] + X[["nmismatch"]][mergers_accepted]
+                rep(min_overlap_obs, X[["abundance"]][mergers_accepted])
+            } else {
+                NA
+            }
+        })
+  
+        min_overlap_obs <- Reduce(c, min_overlap_obs)
+        min_overlap_obs <- min_overlap_obs[!is.na(min_overlap_obs)]
+        min_overlap_obs <- quantile(min_overlap_obs, 0.001)
 
-        write.table('dada\t$args', file = "dada.args.txt", row.names = FALSE, col.names = FALSE, quote = FALSE, na = '')
-        write.table('mergePairs\t$args2', file = "mergePairs.args.txt", row.names = FALSE, col.names = FALSE, quote = FALSE, na = '')
-        writeLines(c("\\"${task.process}\\":", paste0("    R: ", paste0(R.Version()[c("major","minor")], collapse = ".")),paste0("    dada2: ", packageVersion("dada2")) ), "versions.yml")
-        """
-    } else {
-        """
-        #!/usr/bin/env Rscript
-        suppressPackageStartupMessages(library(dada2))
+        for (x in names(mergers)) {
+            to_concat <- !mergers[[x]][["accept"]] & (mergers[[x]][["nmismatch"]] + mergers[[x]][["nmatch"]]) < min_overlap_obs
+                
+            if (sum(to_concat) > 0) {
+                mergers[[x]][to_concat, ] <- concats[[x]][to_concat, ]
+                # filter out unaccepted non concatenated sequences
+                mergers[[x]] <- mergers[[x]][mergers[[x]][["accept"]], ]
+            }
 
-        errF = readRDS("${errormodel}")
-
-        filtFs <- sort(list.files("./filtered/", pattern = ".fastq.gz", full.names = TRUE))
-
-        #denoising
-        sink(file = "${meta.run}.dada.log")
-        dadaFs <- dada(filtFs, err = errF, $args, multithread = $task.cpus)
-        saveRDS(dadaFs, "${meta.run}.dada.rds")
-        sink(file = NULL)
-
-        #make table
-        seqtab <- makeSequenceTable(dadaFs)
-        saveRDS(seqtab, "${meta.run}.seqtab.rds")
-
-        #dummy file to fulfill output rules
-        saveRDS("dummy", "dummy_${meta.run}.mergers.rds")
-
-        write.table('dada\t$args', file = "dada.args.txt", row.names = FALSE, col.names = FALSE, quote = FALSE, na = '')
-        writeLines(c("\\"${task.process}\\":", paste0("    R: ", paste0(R.Version()[c("major","minor")], collapse = ".")),paste0("    dada2: ", packageVersion("dada2")) ), "versions.yml")
-        """
+        }
+            
+    } else if("${params.concatenate_reads}" == "with_overlap") {
+        mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, $args2, verbose=TRUE)
+    } else if("${params.concatenate_reads}" == "concatenate") {
+        mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, $args2, justConcatenate = TRUE, verbose=TRUE)
     }
-}
+    
+    saveRDS(mergers, "${meta.run}.mergers.rds")
+
+    # make table
+
+    seqtab <- makeSequenceTable(mergers)
+    saveRDS(seqtab, "${meta.run}.seqtab.rds")
+
+    write.table('dada\t$args', file = "dada.args.txt", row.names = FALSE, col.names = FALSE, quote = FALSE, na = '')
+    write.table('mergePairs\t$args2', file = "mergePairs.args.txt", row.names = FALSE, col.names = FALSE, quote = FALSE, na = '')
+    writeLines(c("\\"${task.process}\\":", paste0("    R: ", paste0(R.Version()[c("major","minor")], collapse = ".")),paste0("    dada2: ", packageVersion("dada2")) ), "versions.yml")
+    """
+    }
