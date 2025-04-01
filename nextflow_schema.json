@@ -440,68 +440,10 @@
                     "description": "A name for the run",
                     "hidden": true
                 },
-                "qiime_ref_taxonomy": {
-                    "type": "string",
-                    "help_text": "Choose any of the supported databases, and optionally also specify the version. Database and version are separated by an equal sign (`=`, e.g. `silva=138`) . This will download the desired database and initiate taxonomic classification with QIIME2 and the chosen database.\n\nIf both, `--dada_ref_taxonomy` and `--qiime_ref_taxonomy` are used, DADA2 classification will be used for downstream analysis.\n\nThe following databases are supported:\n- SILVA ribosomal RNA gene database project - 16S rRNA\n- UNITE - eukaryotic nuclear ribosomal ITS region - ITS\n- Greengenes (only testing!)\n\nGenerally, using `silva`, `unite-fungi`, or `unite-alleuk` will select the most recent supported version. For testing purposes, the tiny database `greengenes85` (dereplicated at 85% sequence similarity) is available. For details on what values are valid, please either use an invalid value such as `x` (causing the pipeline to send an error message with all valid values) or see `conf/ref_databases.config`.",
-                    "description": "Name of supported database, and optionally also version number",
-                    "enum": [
-                        "silva=138",
-                        "silva",
-                        "unite-fungi=8.3",
-                        "unite-fungi=8.2",
-                        "unite-fungi",
-                        "unite-alleuk=9.0",
-                        "unite-alleuk=8.3",
-                        "unite-alleuk=8.2",
-                        "unite-alleuk",
-                        "greengenes85",
-                        "greengenes2",
-                        "greengenes2=2022.10"
-                    ]
-                },
-                "qiime_ref_tax_custom": {
-                    "type": "string",
-                    "help_text": "Overwrites `--qiime_ref_taxonomy`. Either path to tarball (`*.tar.gz` or `*.tgz`) that contains sequence (`*.fna`) and taxonomy (`*.tax`) data, or alternatively a comma separated pair of filepaths to sequence (`*.fna`) and taxonomy (`*.tax`) data (possibly gzipped `*.gz`).",
-                    "description": "Path to files of a custom QIIME2 reference taxonomy database (tarball, or two comma-separated files)"
-                },
                 "classifier": {
                     "type": "string",
                     "description": "Path to QIIME2 trained classifier file (typically *-classifier.qza)",
                     "help_text": "If you have trained a compatible classifier before, from sources such as SILVA (https://www.arb-silva.de/), Greengenes (http://greengenes.secondgenome.com/downloads) or RDP (https://rdp.cme.msu.edu/). \n\nFor example:\n\n```bash\n--classifier \"FW_primer-RV_primer-classifier.qza\"\n```\n\nPlease note the following requirements:\n\n1. The path must be enclosed in quotes\n2. The classifier is a Naive Bayes classifier produced by `qiime feature-classifier fit-classifier-naive-bayes` (e.g. by this pipeline)\n3. The primer pair for the amplicon PCR and the computing of the classifier are exactly the same (or full-length, potentially lower performance)\n4. The classifier has to be trained by the same version of scikit-learn as this version of the pipeline uses"
-                },
-                "kraken2_ref_taxonomy": {
-                    "type": "string",
-                    "help_text": "Choose any of the supported databases, and optionally also specify the version. Database and version are separated by an equal sign (`=`, e.g. `silve=138`) . This will download the desired database and initiate taxonomic classification with Kraken2 and the chosen database.\n\nConsider using `--kraken2_confidence` to set a confidence score threshold.\n\nThe following databases are supported:\n- RDP - Ribosomal Database Project - 16S rRNA\n- SILVA ribosomal RNA gene database project - 16S rRNA\n- Greengenes - 16S rRNA\n- Standard Kraken2 database (RefSeq archaea, bacteria, viral, plasmid, human, UniVec_Core) - any amplicon\n\nGenerally, using `rdp`, `silva`, `greengenes`, `standard` will select the most recent supported version.\n\nPlease note that commercial/non-academic entities [require licensing](https://www.arb-silva.de/silva-license-information) for SILVA v132 database (non-default) but not from v138 on.",
-                    "description": "Name of supported database, and optionally also version number",
-                    "enum": [
-                        "silva",
-                        "silva=138",
-                        "silva=132",
-                        "rdp",
-                        "rdp=18",
-                        "greengenes",
-                        "greengenes=13.5",
-                        "standard",
-                        "standard=20230605"
-                    ]
-                },
-                "kraken2_ref_tax_custom": {
-                    "type": "string",
-                    "help_text": "Overwrites `--kraken2_ref_taxonomy`. Consider also setting `--kraken2_assign_taxlevels`. Can be compressed tar archive (.tar.gz|.tgz) or folder containing the database. See also https://benlangmead.github.io/aws-indexes/k2.",
-                    "description": "Path to a custom Kraken2 reference taxonomy database (*.tar.gz|*.tgz archive or folder)"
-                },
-                "kraken2_assign_taxlevels": {
-                    "type": "string",
-                    "help_text": "Typically useful when providing a custom Kraken2 reference taxonomy database with `--kraken2_ref_tax_custom`. In case a database is given with `--kraken2_ref_taxonomy`, the default taxonomic levels will be overwritten with `--kraken2_assign_taxlevels`.",
-                    "description": "Comma separated list of taxonomic levels used in Kraken2. Will overwrite default values."
-                },
-                "kraken2_confidence": {
-                    "type": "number",
-                    "default": 0.0,
-                    "help_text": "Increasing the threshold will require more k-mers to match at a taxonomic levels and reduce the taxonomic levels shown until the threshold is met.",
-                    "description": "Confidence score threshold for taxonomic classification.",
-                    "minimum": 0,
-                    "maximum": 1
                 },
                 "sintax_ref_taxonomy": {
                     "type": "string",
@@ -607,30 +549,9 @@
                     "description": "Comma separated list of metadata column headers for plotting average relative abundance barplots.",
                     "help_text": "Here columns in the metadata sheet can be chosen with groupings that are used for average relative abundance barplots. Samples that have empty fields for that column are discarded. For example:\n\n```bash\n--metadata_category_barplot \"treatment1,treatment2\"\n```\n\nPlease note the following requirements:\n\n1. Comma separated list enclosed in quotes\n2. May not contain whitespace characters\n3. Each comma separated term has to match exactly one column name in the metadata sheet"
                 },
-                "qiime_adonis_formula": {
-                    "type": "string",
-                    "description": "Formula for QIIME2 ADONIS metadata feature importance test for beta diversity distances",
-                    "help_text": "Comma separated list of model formula(s), e.g. \"treatment1,treatment2\". Model formula should contain only independent terms in the sample metadata. These can be continuous variables or factors, and they can have interactions as in a typical R formula. Essentially, columns in the metadata sheet can be chosen that have no empty values, not only unique values, or not only identical values.\nFor example, \"treatment1+treatment2\" tests whether the data partitions based on \"treatment1\" and \"treatment2\" sample metadata. \"treatment1*treatment2\" test both of those effects as well as their interaction.\nMore examples can be found in the R documentation, https://cran.r-project.org/doc/manuals/r-release/R-intro.html#Formulae-for-statistical-models"
-                },
-                "picrust": {
-                    "type": "boolean",
-                    "description": "If the functional potential of the bacterial community is predicted."
-                },
                 "sbdiexport": {
                     "type": "boolean",
                     "description": "If data should be exported in SBDI (Swedish biodiversity infrastructure) Excel format."
-                },
-                "diversity_rarefaction_depth": {
-                    "type": "integer",
-                    "default": 500,
-                    "description": "Minimum rarefaction depth for diversity analysis. Any sample below that threshold will be removed.",
-                    "fa_icon": "fas fa-greater-than-equal"
-                },
-                "ancom_sample_min_count": {
-                    "type": "integer",
-                    "default": 1,
-                    "description": "Minimum sample counts to retain a sample for ANCOM analysis. Any sample below that threshold will be removed.",
-                    "fa_icon": "fas fa-greater-than-equal"
                 },
                 "tax_agglom_min": {
                     "type": "integer",
@@ -703,14 +624,6 @@
                     "type": "boolean",
                     "description": "Skip annotating SSU matches."
                 },
-                "skip_qiime": {
-                    "type": "boolean",
-                    "description": "Skip all steps that are executed by QIIME2, including QIIME2 software download, taxonomy assignment by QIIME2, barplots, relative abundance tables, diversity analysis, differential abundance testing."
-                },
-                "skip_qiime_downstream": {
-                    "type": "boolean",
-                    "description": "Skip steps that are executed by QIIME2 except for taxonomic classification. Skip steps including barplots, relative abundance tables, diversity analysis, differential abundance testing."
-                },
                 "skip_taxonomy": {
                     "type": "boolean",
                     "description": "Skip taxonomic classification. Incompatible with `--sbdiexport`"
@@ -723,25 +636,9 @@
                     "type": "boolean",
                     "description": "Skip species level when using DADA2 for taxonomic classification. This reduces the required memory dramatically under certain conditions. Incompatible with `--sbdiexport`"
                 },
-                "skip_barplot": {
-                    "type": "boolean",
-                    "description": "Skip producing barplot"
-                },
                 "skip_abundance_tables": {
                     "type": "boolean",
                     "description": "Skip producing any relative abundance tables"
-                },
-                "skip_alpha_rarefaction": {
-                    "type": "boolean",
-                    "description": "Skip alpha rarefaction"
-                },
-                "skip_diversity_indices": {
-                    "type": "boolean",
-                    "description": "Skip alpha and beta diversity analysis"
-                },
-                "skip_ancom": {
-                    "type": "boolean",
-                    "description": "Skip differential abundance testing"
                 },
                 "skip_multiqc": {
                     "type": "boolean",
@@ -880,7 +777,7 @@
                 "max_cpus": {
                     "type": "integer",
                     "description": "Maximum number of CPUs that can be requested for any single job.",
-                    "default": 16,
+                    "default": 32,
                     "fa_icon": "fas fa-microchip",
                     "help_text": "Use to set an upper-limit for the CPU requirement for each process. Should be an integer e.g. `--max_cpus 1`"
                 },
