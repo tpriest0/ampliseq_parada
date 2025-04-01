@@ -37,25 +37,13 @@ process SUMMARY_REPORT  {
     path(dada2_tax)
     tuple val(meta_ref), path(cut_dada_ref_taxonomy) // cutadapt log when params.cut_dada_ref_taxonomy
     path(sintax_tax)
-    path(kraken2_tax)
     path(pplace_tax)
     tuple val(meta_pplace), path(pplace_heattree)
-    path(qiime2_tax)
-    val(run_qiime2)
     val(val_used_taxonomy)
-    val(qiime2_filtertaxa) // <ASV count original +1>,<ASV count filtered +2>
     path(filter_stats_tsv)
     path(barplot)
-    path(abundance_tables, stageAs: 'abundance_tables/*')
-    val(alpha_rarefaction)
-    path(diversity_indices)
-    path(diversity_indices_alpha, stageAs: 'alpha_diversity/*') // prevent folder name collisons
-    path(diversity_indices_beta, stageAs: 'beta_diversity/*') // prevent folder name collisons
-    path(diversity_indices_adonis, stageAs: 'beta_diversity/adonis/*') // prevent folder name collisons
-    path(ancom)
-    path(picrust_pathways)
     path(sbdi, stageAs: 'sbdi/*')
-    path(phyloseq, stageAs: 'phyloseq/*')
+
 
     output:
     path "*.svg"               , emit: svg, optional: true
@@ -115,24 +103,11 @@ process SUMMARY_REPORT  {
         dada2_tax && !params.dada_ref_tax_custom ? "dada2_ref_tax_title='${params.dada_ref_databases[params.dada_ref_taxonomy]["title"]}',dada2_ref_tax_file='${params.dada_ref_databases[params.dada_ref_taxonomy]["file"]}',dada2_ref_tax_citation='${params.dada_ref_databases[params.dada_ref_taxonomy]["citation"]}'" : "",
         cut_dada_ref_taxonomy ? "cut_dada_ref_taxonomy='$cut_dada_ref_taxonomy'" : "",
         sintax_tax ? "sintax_taxonomy='$sintax_tax',sintax_ref_tax_title='${params.sintax_ref_databases[params.sintax_ref_taxonomy]["title"]}',sintax_ref_tax_file='${params.sintax_ref_databases[params.sintax_ref_taxonomy]["file"]}',sintax_ref_tax_citation='${params.sintax_ref_databases[params.sintax_ref_taxonomy]["citation"]}'" : "",
-        kraken2_tax ? "kraken2_taxonomy='$kraken2_tax',kraken2_confidence='$params.kraken2_confidence'" : "",
-        kraken2_tax && !params.kraken2_ref_tax_custom ? "kraken2_ref_tax_title='${params.kraken2_ref_databases[params.kraken2_ref_taxonomy]["title"]}',kraken2_ref_tax_file='${params.kraken2_ref_databases[params.kraken2_ref_taxonomy]["file"]}',kraken2_ref_tax_citation='${params.kraken2_ref_databases[params.kraken2_ref_taxonomy]["citation"]}'" : "",
         pplace_tax ? "pplace_taxonomy='$pplace_tax',pplace_heattree='$pplace_heattree'" : "",
-        qiime2_tax ? "qiime2_taxonomy='$qiime2_tax'" : "",
-        qiime2_tax && params.qiime_ref_taxonomy ? "qiime2_ref_tax_title='${params.qiime_ref_databases[params.qiime_ref_taxonomy]["title"]}',qiime2_ref_tax_file='${params.qiime_ref_databases[params.qiime_ref_taxonomy]["file"]}',qiime2_ref_tax_citation='${params.qiime_ref_databases[params.qiime_ref_taxonomy]["citation"]}'" : "",
-        run_qiime2 ? "val_used_taxonomy='$val_used_taxonomy'" : "",
         filter_stats_tsv ? "filter_stats_tsv='$filter_stats_tsv',qiime2_filtertaxa='$qiime2_filtertaxa',exclude_taxa='$params.exclude_taxa',min_frequency='$params.min_frequency',min_samples='$params.min_samples'" : "",
         barplot ? "barplot=TRUE" : "",
         barplot && params.metadata_category_barplot ? "metadata_category_barplot='$params.metadata_category_barplot'" : "",
-        abundance_tables ? "abundance_tables=TRUE" : "",
-        alpha_rarefaction ? "alpha_rarefaction=TRUE" : "",
-        diversity_indices ? "diversity_indices_depth='$diversity_indices'": "",
-        diversity_indices_alpha ? "diversity_indices_alpha=TRUE" : "",
-        diversity_indices_beta ? "diversity_indices_beta='"+ diversity_indices_beta.join(",") +"'" : "",
-        diversity_indices_adonis ? "diversity_indices_adonis='"+ diversity_indices_adonis.join(",") +"',qiime_adonis_formula='$params.qiime_adonis_formula'" : "",
-        ancom ? "ancom='"+ ancom.join(",") +"'" : "",
         sbdi ? "sbdi='"+ sbdi.join(",") +"'" : "",
-        phyloseq ? "phyloseq='"+ phyloseq.join(",") +"'" : "",
     ]
     // groovy list to R named list string; findAll removes empty entries
     params_list_named_string = params_list_named.findAll().join(',').trim()
