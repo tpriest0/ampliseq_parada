@@ -10,29 +10,6 @@ if (params.metadata) {
     ch_metadata = Channel.fromPath("${params.metadata}", checkIfExists: true)
 } else { ch_metadata = Channel.empty() }
 
-if (params.sidle_ref_tax_custom) {
-    if ("${params.sidle_ref_tax_custom}".contains(",")) {
-        sidle_ref_paths = "${params.sidle_ref_tax_custom}".split(",")
-        if (sidle_ref_paths.length != 3) {
-            error "--sidle_ref_tax_custom exately three filepaths separated by a comma (fasta, aligned fasta, taxonomy). Please review input."
-        }
-        ch_sidle_ref_taxonomy = Channel.fromPath( Arrays.asList(sidle_ref_paths), checkIfExists: true )
-    } else {
-        error "--sidle_ref_tax_custom accepts exately three filepaths separated by a comma. Please review input."
-    }
-    val_sidle_ref_taxonomy = "user"
-    ch_sidle_ref_taxonomy_tree = params.sidle_ref_tree_custom ? Channel.fromPath("${params.sidle_ref_tree_custom}", checkIfExists: true) : Channel.empty()
-} else if (params.sidle_ref_taxonomy) {
-    ch_sidle_ref_taxonomy = Channel.fromList( params.sidle_ref_databases[params.sidle_ref_taxonomy]["file"] ).map { file(it) }
-    ch_sidle_ref_taxonomy_tree = params.sidle_ref_tree_custom ? Channel.fromPath("${params.sidle_ref_tree_custom}", checkIfExists: true) :
-        params.sidle_ref_databases[params.sidle_ref_taxonomy]["tree_qza"] ? Channel.fromList( params.sidle_ref_databases[params.sidle_ref_taxonomy]["tree_qza"] ).map { file(it) } : Channel.empty()
-    val_sidle_ref_taxonomy = params.sidle_ref_taxonomy.replace('=','_').replace('.','_')
-} else {
-    ch_sidle_ref_taxonomy = Channel.empty()
-    ch_sidle_ref_taxonomy_tree = Channel.empty()
-    val_sidle_ref_taxonomy = "none"
-}
-
 if (params.dada_ref_tax_custom) {
     //custom ref taxonomy input from params.dada_ref_tax_custom & params.dada_ref_tax_custom_sp
     ch_assigntax = Channel.fromPath("${params.dada_ref_tax_custom}", checkIfExists: true)
@@ -131,7 +108,6 @@ include { DADA2_RMCHIMERA               } from '../modules/local/dada2_rmchimera
 include { DADA2_STATS                   } from '../modules/local/dada2_stats'
 include { DADA2_MERGE                   } from '../modules/local/dada2_merge'
 include { DADA2_SPLITREGIONS            } from '../modules/local/dada2_splitregions'
-include { SIDLE_WF                      } from '../subworkflows/local/sidle_wf'
 include { BARRNAP                       } from '../modules/local/barrnap'
 include { BARRNAPSUMMARY                } from '../modules/local/barrnapsummary'
 include { FILTER_SSU                    } from '../modules/local/filter_ssu'
@@ -355,48 +331,6 @@ workflow AMPLISEQ {
         ch_stats = DADA2_MERGE.out.dada2stats
     }
 
-    //
-    // SUBWORKFLOW / MODULES : Taxonomic classification with DADA2 or SINTAX
-    //
-    if ( params.multiregion ) {
-        // separate sequences and abundances when several regions
-        DADA2_SPLITREGIONS (
-            //DADA2_DENOISING per run & region -> per run
-            ch_reads
-                .map {
-                    info, reads ->
-                        def meta = info.subMap( info.keySet() - 'id' - 'sample' - 'run' ) // All of 'id', 'sample', 'run' must be removed to merge by region
-                        def inf2 = info.subMap( 'id', 'sample' )// May not contain false,true,null; only 'id', 'sample' required
-                        [ meta, inf2 ] }
-                .groupTuple(by: 0 ).dump(tag:'DADA2_SPLITREGIONS:meta'),
-            DADA2_MERGE.out.dada2asv )
-        ch_versions = ch_versions.mix(DADA2_SPLITREGIONS.out.versions)
-
-        // run q2-sidle
-        SIDLE_WF (
-            DADA2_SPLITREGIONS.out.for_sidle,
-            ch_sidle_ref_taxonomy.collect(),
-            val_sidle_ref_taxonomy,
-            ch_sidle_ref_taxonomy_tree
-        )
-        ch_versions = ch_versions.mix(SIDLE_WF.out.versions)
-
-        // forward results to downstream analysis if multi region
-        ch_dada2_asv = SIDLE_WF.out.table_tsv
-        ch_dada2_fasta = Channel.empty()
-        // Any ASV post-clustering param is not allowed:
-        // - solved by '!params.multiregion' for vsearch_cluster, filter_ssu, min_len_asv, max_len_asv, filter_codons
-        // - solved in 'lib/WorkflowAmpliseq.groovy': cut_its
-        // Must have params:
-        // - solved by '!params.multiregion' for skip_report
-        // - solved in 'lib/WorkflowAmpliseq.groovy': skip_dada_taxonomy
-    } else {
-        // forward results to downstream analysis if single region
-        ch_dada2_fasta = DADA2_MERGE.out.fasta
-        ch_dada2_asv = DADA2_MERGE.out.asv
-    }
-
-    //
     // MODULE : ASV post-clustering with VSEARCH
     //
     if (params.vsearch_cluster && !params.multiregion) {

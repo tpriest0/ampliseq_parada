@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "https://raw.githubusercontent.com/nf-core/ampliseq/master/nextflow_schema.json",
     "title": "nf-core/ampliseq pipeline parameters",
-    "description": "Amplicon sequencing analysis workflow using DADA2 and QIIME2",
+    "description": "Amplicon sequencing analysis workflow using DADA2",
     "type": "object",
     "definitions": {
         "input_output_options": {

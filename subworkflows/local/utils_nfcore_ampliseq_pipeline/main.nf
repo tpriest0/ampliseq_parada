@@ -83,9 +83,6 @@ workflow PIPELINE_INITIALISATION {
     if ( params.sintax_ref_taxonomy && !params.skip_taxonomy ) {
         sintaxreftaxonomyExistsError()
     }
-    if ( params.sidle_ref_taxonomy && !params.skip_taxonomy ) {
-        sidlereftaxonomyExistsError()
-    }
 
     emit:
     versions    = ch_versions
@@ -249,9 +246,6 @@ def validateInputParameters() {
 
     // When multi-region analysis is used, some parameter combinations are required or not allowed:
     if ( params.multiregion ) {
-        if ( !params.sidle_ref_taxonomy && !params.sidle_ref_tree_custom ) {
-            log.warn "Missing parameter: Either use `--sidle_ref_taxonomy` or `--sidle_ref_tree_custom` to get (unified) taxonomic classifications"
-        }
         if ( (params.dada_ref_tax_custom || params.dada_ref_taxonomy) && !params.skip_dada_taxonomy ) {
             error("Incompatible parameters: Multiple region analysis with `--multiregion` does not work with `--dada_ref_tax_custom`, `--dada_ref_taxonomy`")
         }
@@ -296,20 +290,6 @@ def sintaxreftaxonomyExistsError() {
             "  SINTAX reference database '${params.sintax_ref_taxonomy}' not found in any config file provided to the pipeline.\n" +
             "  Currently, the available reference taxonomy keys for `--sintax_ref_taxonomy` are:\n" +
             "  ${params.sintax_ref_databases.keySet().join(", ")}\n" +
-            "==================================================================================="
-        error(error_string)
-    }
-}
-
-//
-// Exit pipeline if incorrect --sidle_ref_taxonomy key provided
-//
-def sidlereftaxonomyExistsError() {
-    if (params.sidle_ref_databases && params.sidle_ref_taxonomy && !params.sidle_ref_databases.containsKey(params.sidle_ref_taxonomy)) {
-        def error_string = "=============================================================================\n" +
-            "  Sidle reference database '${params.sidle_ref_taxonomy}' not found in any config file provided to the pipeline.\n" +
-            "  Currently, the available reference taxonomy keys for `--sidle_ref_taxonomy` are:\n" +
-            "  ${params.sidle_ref_databases.keySet().join(", ")}\n" +
             "==================================================================================="
         error(error_string)
     }
