@@ -139,7 +139,7 @@ def validateInputParameters() {
         error("Missing input declaration: One of `--input`, `--input_fasta`, `--input_folder` is required.")
     }
 
-    if ( !params.multiregion && !params.input_fasta && (!params.FW_primer || !params.RV_primer) && !params.skip_cutadapt ) {
+    if ( !params.input_fasta && (!params.FW_primer || !params.RV_primer) && !params.skip_cutadapt ) {
         error("Incompatible parameters: `--FW_primer` and `--RV_primer` are required for primer trimming. If primer trimming is not needed, use `--skip_cutadapt`.")
     }
 
@@ -242,19 +242,6 @@ def validateInputParameters() {
     // Error message for incompatible combination of --orf_start and --orf_end
     if ( params.orf_end && ( ( ( params.orf_end + 1 ) - params.orf_start ) % 3 != 0 ) ) {
         error("Incompatible parameters: The difference of  `--orf_end` and `--orf_start` must be a multiple of 3.")
-    }
-
-    // When multi-region analysis is used, some parameter combinations are required or not allowed:
-    if ( params.multiregion ) {
-        if ( (params.dada_ref_tax_custom || params.dada_ref_taxonomy) && !params.skip_dada_taxonomy ) {
-            error("Incompatible parameters: Multiple region analysis with `--multiregion` does not work with `--dada_ref_tax_custom`, `--dada_ref_taxonomy`")
-        }
-        if ( params.cut_its != "none" ) {
-            error("Incompatible parameters: Multiple region analysis with `--multiregion` does not work with `--cut_its`")
-        }
-        if ( params.vsearch_cluster || params.filter_ssu || params.min_len_asv || params.max_len_asv || params.filter_codons ) {
-            log.warn "Incompatible parameters: Multiple region analysis with `--multiregion` ignores any of `--vsearch_cluster`, `--filter_ssu`, `--min_len_asv`, `--max_len_asv`, `--filter_codons`, `--cut_its`"
-        }
     }
 }
 
