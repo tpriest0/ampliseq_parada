@@ -331,6 +331,9 @@ workflow AMPLISEQ {
         ch_stats = DADA2_MERGE.out.dada2stats
     }
 
+    ch_dada2_fasta = DADA2_MERGE.out.fasta
+    ch_dada2_asv = DADA2_MERGE.out.asv
+
     // MODULE : ASV post-clustering with VSEARCH
     //
     if (params.vsearch_cluster && !params.multiregion) {
