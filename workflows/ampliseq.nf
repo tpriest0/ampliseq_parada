@@ -10,10 +10,6 @@ if (params.metadata) {
     ch_metadata = Channel.fromPath("${params.metadata}", checkIfExists: true)
 } else { ch_metadata = Channel.empty() }
 
-if (params.classifier) {
-    ch_qiime_classifier = Channel.fromPath("${params.classifier}", checkIfExists: true)
-} else { ch_qiime_classifier = Channel.empty() }
-
 if (params.sidle_ref_tax_custom) {
     if ("${params.sidle_ref_tax_custom}".contains(",")) {
         sidle_ref_paths = "${params.sidle_ref_tax_custom}".split(",")
@@ -165,8 +161,6 @@ include { FILTER_CLUSTERS               } from '../modules/local/filter_clusters
 
 include { PARSE_INPUT                   } from '../subworkflows/local/parse_input'
 include { DADA2_PREPROCESSING           } from '../subworkflows/local/dada2_preprocessing'
-include { QIIME2_PREPTAX                } from '../subworkflows/local/qiime2_preptax'
-include { QIIME2_TAXONOMY               } from '../subworkflows/local/qiime2_taxonomy'
 include { CUTADAPT_WORKFLOW             } from '../subworkflows/local/cutadapt_workflow'
 include { DADA2_TAXONOMY_WF             } from '../subworkflows/local/dada2_taxonomy_wf'
 include { SINTAX_TAXONOMY_WF            } from '../subworkflows/local/sintax_taxonomy_wf'
@@ -362,7 +356,7 @@ workflow AMPLISEQ {
     }
 
     //
-    // SUBWORKFLOW / MODULES : Taxonomic classification with DADA2, SINTAX and/or QIIME2
+    // SUBWORKFLOW / MODULES : Taxonomic classification with DADA2 or SINTAX
     //
     if ( params.multiregion ) {
         // separate sequences and abundances when several regions
@@ -517,7 +511,7 @@ workflow AMPLISEQ {
     }
 
     //
-    // SUBWORKFLOW / MODULES : Taxonomic classification with DADA2, SINTAX and/or QIIME2
+    // SUBWORKFLOW / MODULES : Taxonomic classification with DADA2 or SINTAX
     //
 
     //DADA2
@@ -662,7 +656,6 @@ workflow AMPLISEQ {
             !params.skip_taxonomy && params.dada_ref_taxonomy && !params.skip_dada_taxonomy ? ch_dada2_tax.ifEmpty( [] ) : [],
             !params.skip_taxonomy && params.dada_ref_taxonomy && !params.skip_dada_taxonomy ? DADA2_TAXONOMY_WF.out.cut_tax.ifEmpty( [[],[]] ) : [[],[]],
             !params.skip_taxonomy && params.sintax_ref_taxonomy ? ch_sintax_tax.ifEmpty( [] ) : [],
-            !params.skip_taxonomy && ( params.kraken2_ref_taxonomy || params.kraken2_ref_tax_custom ) ? KRAKEN2_TAXONOMY_WF.out.tax_tsv.ifEmpty( [] ) : [],
             !params.skip_taxonomy && params.pplace_tree ? ch_pplace_tax.ifEmpty( [] ) : [],
             !params.skip_taxonomy && params.pplace_tree ? FASTA_NEWICK_EPANG_GAPPA.out.heattree.ifEmpty( [[],[]] ) : [[],[]],
         )
