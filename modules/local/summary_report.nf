@@ -75,7 +75,7 @@ process SUMMARY_REPORT  {
         dada_qual_stats ? "dada_qc_f_path='FW_qual_stats.svg',dada_qc_r_path='RV_qual_stats.svg',dada_pp_qc_f_path='FW_preprocessed_qual_stats.svg',dada_pp_qc_r_path='RV_preprocessed_qual_stats.svg'" : "",
         dada_filtntrim_args ? "dada_filtntrim_args='$dada_filtntrim_args'" : "",
         "dada_sample_inference='$params.sample_inference'",
-        dada_err_svgs && meta.run.size() == 1
+        dada_err_svgs && meta.run.size() == 1 ?
             "dada_err_path='$dada_err_svgs',dada_err_run='"+meta.run+"'" :
             dada_err_svgs ? "dada_err_path='"+dada_err_svgs.join(',')+"',dada_err_run='"+meta.run.join(',')+"'" : "",
         dada_asv_table ? "asv_table_path='$dada_asv_table'" : "",
