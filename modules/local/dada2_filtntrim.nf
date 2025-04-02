@@ -19,11 +19,11 @@ process DADA2_FILTNTRIM {
 
     script:
     def args        = task.ext.args ?: ''
-    def in_and_out  = meta.single_end ? "\"${reads}\", \"${meta.id}.filt.fastq.gz\"" : "\"${reads[0]}\", \"${meta.id}_1.filt.fastq.gz\", \"${reads[1]}\", \"${meta.id}_2.filt.fastq.gz\""
-    def outfiles    = meta.single_end ? "\"${meta.id}.filt.fastq.gz\"" : "\"${meta.id}_1.filt.fastq.gz\", \"${meta.id}_2.filt.fastq.gz\""
+    def in_and_out  = "\"${reads[0]}\", \"${meta.id}_1.filt.fastq.gz\", \"${reads[1]}\", \"${meta.id}_2.filt.fastq.gz\""
+    def outfiles    = "\"${meta.id}_1.filt.fastq.gz\", \"${meta.id}_2.filt.fastq.gz\""
     def trunclenf   = trunclenf[1].toInteger()
     def trunclenr   = trunclenr[1].toInteger()
-    def trunc_args  = meta.single_end ? "truncLen = $trunclenf" : "truncLen = c($trunclenf, $trunclenr)"
+    def trunc_args  = "truncLen = c($trunclenf, $trunclenr)"
     """
     #!/usr/bin/env Rscript
     suppressPackageStartupMessages(library(dada2))
