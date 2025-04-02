@@ -19,7 +19,6 @@ process SUMMARY_REPORT  {
     val(find_truncation_values)
     path(dada_filtntrim_args)
     path(dada_qual_stats)
-    path(dada_pp_qual_stats)
     tuple val(meta), path(dada_err_svgs)
     path(dada_asv_table)
     path(dada_asv_fa)
@@ -73,11 +72,10 @@ process SUMMARY_REPORT  {
         "trunclenf='$params.trunclenf'",
         "trunclenr='$params.trunclenr'",
         "max_ee=$params.max_ee",
-        dada_qual_stats && meta.single_end ? "dada_qc_f_path='$dada_qual_stats',dada_pp_qc_f_path='$dada_pp_qual_stats'" :
-            dada_qual_stats ? "dada_qc_f_path='FW_qual_stats.svg',dada_qc_r_path='RV_qual_stats.svg',dada_pp_qc_f_path='FW_preprocessed_qual_stats.svg',dada_pp_qc_r_path='RV_preprocessed_qual_stats.svg'" : "",
+        dada_qual_stats ? "dada_qc_f_path='FW_qual_stats.svg',dada_qc_r_path='RV_qual_stats.svg',dada_pp_qc_f_path='FW_preprocessed_qual_stats.svg',dada_pp_qc_r_path='RV_preprocessed_qual_stats.svg'" : "",
         dada_filtntrim_args ? "dada_filtntrim_args='$dada_filtntrim_args'" : "",
         "dada_sample_inference='$params.sample_inference'",
-        dada_err_svgs && meta.run.size() == 1 && meta.single_end ?
+        dada_err_svgs && meta.run.size() == 1
             "dada_err_path='$dada_err_svgs',dada_err_run='"+meta.run+"'" :
             dada_err_svgs ? "dada_err_path='"+dada_err_svgs.join(',')+"',dada_err_run='"+meta.run.join(',')+"'" : "",
         dada_asv_table ? "asv_table_path='$dada_asv_table'" : "",
