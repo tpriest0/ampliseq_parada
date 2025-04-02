@@ -39,9 +39,6 @@ process SUMMARY_REPORT  {
     path(sintax_tax)
     path(pplace_tax)
     tuple val(meta_pplace), path(pplace_heattree)
-    val(val_used_taxonomy)
-    path(filter_stats_tsv)
-    path(barplot)
     path(sbdi, stageAs: 'sbdi/*')
 
 
@@ -104,9 +101,6 @@ process SUMMARY_REPORT  {
         cut_dada_ref_taxonomy ? "cut_dada_ref_taxonomy='$cut_dada_ref_taxonomy'" : "",
         sintax_tax ? "sintax_taxonomy='$sintax_tax',sintax_ref_tax_title='${params.sintax_ref_databases[params.sintax_ref_taxonomy]["title"]}',sintax_ref_tax_file='${params.sintax_ref_databases[params.sintax_ref_taxonomy]["file"]}',sintax_ref_tax_citation='${params.sintax_ref_databases[params.sintax_ref_taxonomy]["citation"]}'" : "",
         pplace_tax ? "pplace_taxonomy='$pplace_tax',pplace_heattree='$pplace_heattree'" : "",
-        filter_stats_tsv ? "filter_stats_tsv='$filter_stats_tsv',qiime2_filtertaxa='$qiime2_filtertaxa',exclude_taxa='$params.exclude_taxa',min_frequency='$params.min_frequency',min_samples='$params.min_samples'" : "",
-        barplot ? "barplot=TRUE" : "",
-        barplot && params.metadata_category_barplot ? "metadata_category_barplot='$params.metadata_category_barplot'" : "",
         sbdi ? "sbdi='"+ sbdi.join(",") +"'" : "",
     ]
     // groovy list to R named list string; findAll removes empty entries
