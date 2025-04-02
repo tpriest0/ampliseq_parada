@@ -61,7 +61,6 @@ process SUMMARY_REPORT  {
         "workflow_scriptid='${workflow.scriptId.substring(0,10)}'",
         params.report_title ? "report_title='$params.report_title'" : "",
         report_abstract ? "report_abstract='$params.report_abstract'" : "",
-        meta.single_end ? "flag_single_end=TRUE" : "",
         metadata ? "metadata='$metadata'" : "",
         input_samplesheet ? "input_samplesheet='$input_samplesheet'" : "",
         input_fasta ? "input_fasta='$input_fasta'" : "",
