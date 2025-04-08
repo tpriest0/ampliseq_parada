@@ -57,7 +57,7 @@ process DADA2_DENOISING {
                 concats <- list(sample = concats)
             }
 
-            # define the overlap threshold to decide if concatenation or not
+            #  define the overlap threshold to decide if concatenation or not
 
             min_overlap_obs <- lapply(mergers, function(X) {
 
@@ -86,8 +86,10 @@ process DADA2_DENOISING {
 
             }
             
-        } else {
+        } else if("${params.concatenate_reads}" == "with_overlap") {
             mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, $args2, verbose=TRUE)
+        } else if("${params.concatenate_reads}" == "concatenate") {
+            mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, $args2, justConcatenate = TRUE, verbose=TRUE)
         }
 
         saveRDS(mergers, "${meta.run}.mergers.rds")
