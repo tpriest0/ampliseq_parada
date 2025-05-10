@@ -83,15 +83,6 @@ workflow PIPELINE_INITIALISATION {
     if ( params.sintax_ref_taxonomy && !params.skip_taxonomy ) {
         sintaxreftaxonomyExistsError()
     }
-    if ( (params.qiime_ref_taxonomy || params.qiime_ref_tax_custom) && !params.skip_taxonomy && !params.classifier ) {
-        qiimereftaxonomyExistsError()
-    }
-    if ( params.kraken2_ref_taxonomy  && !params.skip_taxonomy ) {
-        kraken2reftaxonomyExistsError()
-    }
-    if ( params.sidle_ref_taxonomy && !params.skip_taxonomy ) {
-        sidlereftaxonomyExistsError()
-    }
 
     emit:
     versions    = ch_versions
@@ -148,7 +139,7 @@ def validateInputParameters() {
         error("Missing input declaration: One of `--input`, `--input_fasta`, `--input_folder` is required.")
     }
 
-    if ( !params.multiregion && !params.input_fasta && (!params.FW_primer || !params.RV_primer) && !params.skip_cutadapt ) {
+    if ( !params.input_fasta && (!params.FW_primer || !params.RV_primer) && !params.skip_cutadapt ) {
         error("Incompatible parameters: `--FW_primer` and `--RV_primer` are required for primer trimming. If primer trimming is not needed, use `--skip_cutadapt`.")
     }
 
@@ -210,25 +201,13 @@ def validateInputParameters() {
     }
 
     if (params.skip_dada_taxonomy && params.sbdiexport) {
-        if (!params.sintax_ref_taxonomy && (params.skip_qiime || (!params.qiime_ref_taxonomy && !params.qiime_ref_tax_custom))) {
-            error("Incompatible parameters: `--sbdiexport` expects taxa annotation and therefore annotation with either DADA2, SINTAX, or QIIME2 is needed.")
+        if (!params.sintax_ref_taxonomy) {
+            error("Incompatible parameters: `--sbdiexport` expects taxa annotation and therefore annotation with either DADA2 or SINTAX is needed.")
         }
-    }
-
-    if ( (!params.FW_primer || !params.RV_primer) && (params.qiime_ref_taxonomy || params.qiime_ref_tax_custom) && !params.skip_qiime && !params.skip_taxonomy ) {
-        error("Incompatible parameters: `--FW_primer` and `--RV_primer` are required for cutting the QIIME2 reference database to the amplicon sequences. Please specify primers or do not use `--qiime_ref_taxonomy`.")
     }
 
     if ( (!params.FW_primer || !params.RV_primer) && params.cut_dada_ref_taxonomy && !params.skip_taxonomy ) {
         error("Incompatible parameters: `--FW_primer` and `--RV_primer` are required for cutting the DADA2 reference database to the amplicon sequences. Please specify primers or do not use `--cut_dada_ref_taxonomy`.")
-    }
-
-    if ((params.qiime_ref_taxonomy || params.qiime_ref_tax_custom) && params.classifier) {
-        error("Incompatible parameters: `--qiime_ref_taxonomy` and `--qiime_ref_tax_custom` will produce a classifier but `--classifier` points to a precomputed classifier, therefore, only use one of those.")
-    }
-
-    if (params.kraken2_ref_tax_custom && !params.kraken2_assign_taxlevels ) {
-        error("Missing parameter: Taxonomic classification with a user provided database via `--kraken2_ref_tax_custom` requires `--kraken2_assign_taxlevels`")
     }
 
     if (params.filter_ssu && params.skip_barrnap) {
@@ -264,22 +243,6 @@ def validateInputParameters() {
     if ( params.orf_end && ( ( ( params.orf_end + 1 ) - params.orf_start ) % 3 != 0 ) ) {
         error("Incompatible parameters: The difference of  `--orf_end` and `--orf_start` must be a multiple of 3.")
     }
-
-    // When multi-region analysis is used, some parameter combinations are required or not allowed:
-    if ( params.multiregion ) {
-        if ( !params.sidle_ref_taxonomy && !params.sidle_ref_tree_custom ) {
-            log.warn "Missing parameter: Either use `--sidle_ref_taxonomy` or `--sidle_ref_tree_custom` to get (unified) taxonomic classifications"
-        }
-        if ( (params.dada_ref_tax_custom || params.dada_ref_taxonomy) && !params.skip_dada_taxonomy ) {
-            error("Incompatible parameters: Multiple region analysis with `--multiregion` does not work with `--dada_ref_tax_custom`, `--dada_ref_taxonomy`")
-        }
-        if ( params.cut_its != "none" ) {
-            error("Incompatible parameters: Multiple region analysis with `--multiregion` does not work with `--cut_its`")
-        }
-        if ( params.vsearch_cluster || params.filter_ssu || params.min_len_asv || params.max_len_asv || params.filter_codons ) {
-            log.warn "Incompatible parameters: Multiple region analysis with `--multiregion` ignores any of `--vsearch_cluster`, `--filter_ssu`, `--min_len_asv`, `--max_len_asv`, `--filter_codons`, `--cut_its`"
-        }
-    }
 }
 
 //
@@ -314,48 +277,6 @@ def sintaxreftaxonomyExistsError() {
             "  SINTAX reference database '${params.sintax_ref_taxonomy}' not found in any config file provided to the pipeline.\n" +
             "  Currently, the available reference taxonomy keys for `--sintax_ref_taxonomy` are:\n" +
             "  ${params.sintax_ref_databases.keySet().join(", ")}\n" +
-            "==================================================================================="
-        error(error_string)
-    }
-}
-
-//
-// Exit pipeline if incorrect --qiime_ref_taxonomy key provided
-//
-def qiimereftaxonomyExistsError() {
-    if (params.qiime_ref_databases && params.qiime_ref_taxonomy && !params.qiime_ref_databases.containsKey(params.qiime_ref_taxonomy)) {
-        def error_string = "=============================================================================\n" +
-            "  QIIME2 reference database '${params.qiime_ref_taxonomy}' not found in any config file provided to the pipeline.\n" +
-            "  Currently, the available reference taxonomy keys for `--qiime_ref_taxonomy` are:\n" +
-            "  ${params.qiime_ref_databases.keySet().join(", ")}\n" +
-            "==================================================================================="
-        error(error_string)
-    }
-}
-
-//
-// Exit pipeline if incorrect --kraken2_ref_taxonomy key provided
-//
-def kraken2reftaxonomyExistsError() {
-    if (params.kraken2_ref_databases && params.kraken2_ref_taxonomy && !params.kraken2_ref_databases.containsKey(params.kraken2_ref_taxonomy)) {
-        def error_string = "=============================================================================\n" +
-            "  Kraken2 reference database '${params.kraken2_ref_taxonomy}' not found in any config file provided to the pipeline.\n" +
-            "  Currently, the available reference taxonomy keys for `--kraken2_ref_taxonomy` are:\n" +
-            "  ${params.kraken2_ref_databases.keySet().join(", ")}\n" +
-            "==================================================================================="
-        error(error_string)
-    }
-}
-
-//
-// Exit pipeline if incorrect --sidle_ref_taxonomy key provided
-//
-def sidlereftaxonomyExistsError() {
-    if (params.sidle_ref_databases && params.sidle_ref_taxonomy && !params.sidle_ref_databases.containsKey(params.sidle_ref_taxonomy)) {
-        def error_string = "=============================================================================\n" +
-            "  Sidle reference database '${params.sidle_ref_taxonomy}' not found in any config file provided to the pipeline.\n" +
-            "  Currently, the available reference taxonomy keys for `--sidle_ref_taxonomy` are:\n" +
-            "  ${params.sidle_ref_databases.keySet().join(", ")}\n" +
             "==================================================================================="
         error(error_string)
     }
