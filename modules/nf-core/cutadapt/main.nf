@@ -21,15 +21,17 @@ process CUTADAPT {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def trimmed  = meta.single_end ? "-o ${prefix}.trim.fastq.gz" : "-o ${prefix}_1.trim.fastq.gz -p ${prefix}_2.trim.fastq.gz"
+    def trimmed_step1_r1  = meta.single_end ? "-o ${prefix}.trim.fastq.gz" : "-o ${prefix}_1.temp1.fastq.gz"
+    def trimmed_step1_r2  = meta.single_end ? "-o ${prefix}.trim.fastq.gz" : "-p ${prefix}_2.temp1.fastq.gz"
+    def trimmed_step2_r1  = meta.single_end ? "-o ${prefix}.trim.fastq.gz" : "-o ${prefix}_1.temp2.fastq.gz"
+    def trimmed_step2_r2  = meta.single_end ? "-o ${prefix}.trim.fastq.gz" : "-p ${prefix}_2.temp2.fastq.gz"
+    def trimmed_final  = meta.single_end ? "-o ${prefix}.trim.fastq.gz" : "-o ${prefix}_1.trim.fastq.gz -p ${prefix}_2.trim.fastq.gz"
     """
-    cutadapt \\
-        -Z \\
-        --cores $task.cpus \\
-        $args \\
-        $trimmed \\
-        $reads \\
-        > ${prefix}.cutadapt.log
+    cutadapt $args $trimmed_step1_r1 $trimmed_step1_r2 $reads > ${prefix}.cutadapt.log
+    cutadapt $args2 $trimmed_step2_r1 $trimmed_step1_r1 >> ${prefix}.cutadapt.log
+    cutadapt $args3 $trimmed_step2_r2 $trimmed_step1_r2 >> ${prefix}.cutadapt.log
+    cutadapt $trimmed_final $trimmed_step1_r1 $trimmed_step1_r2 >> {log.log} 
+    
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         cutadapt: \$(cutadapt --version)
